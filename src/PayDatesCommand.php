@@ -49,7 +49,7 @@ class PayDatesCommand
     public static function getFilepath(): string
     {
         $year = date('Y');
-        $filePath = __DIR__ . "/../salaries-{$year}.csv";
+        $filePath = __DIR__ . "/../output/salaries-{$year}.csv";
         return $filePath;
     }
 

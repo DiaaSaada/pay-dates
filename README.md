@@ -9,3 +9,10 @@
 `vendor/bin/phpunit`
 
 
+### To RUN WITH DOCKER
+
+`docker build -t pay-dates-cli .`
+
+`docker run -v "[DESTINATION-FOLDER]:/app/output" -it pay-dates-cli`
+
+
