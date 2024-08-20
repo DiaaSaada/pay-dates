@@ -2,18 +2,29 @@
 
 use Diaa\PayDates\MonthRecord;
 use Diaa\PayDates\PayDatesException;
+use Diaa\PayDates\storage\Istorage;
+use Diaa\PayDates\storage\StorageFactory;
 
-require 'vendor/autoload.php'; // Composer autoload, if needed
+require 'vendor/autoload.php';
+
 class PayDatesCommand
 {
 
     /**
      * Execute the console command.
      */
-    public static function run()
+    public static function run(): void
     {
+        $options = self::readArgs();
+        $year = $options['--year'] ?? date('Y');
+        $store = $options['--store'] ?? 'file';
+
+        /**
+         * @var $storageHndlr Istorage
+         */
+        $storageHndlr = StorageFactory::create($store, $year);
         try {
-            PayDatesCommand::handle();
+            PayDatesCommand::handle($year, $storageHndlr);
         } catch (PayDatesException $e) {
             echo $e->getMessage();
         } catch (Exception $e) {
@@ -22,12 +33,31 @@ class PayDatesCommand
         }
     }
 
-    public static function handle(): void
+    /**
+     * @return array
+     */
+    public static function readArgs(): array
+    {
+        $args = $_SERVER['argv'];
+        $options = [];
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--')) {
+                list($key, $value) = explode('=', $arg);
+                $options[$key] = $value;
+            }
+        }
+        return $options;
+    }
+
+    /**
+     * @throws PayDatesException
+     */
+    public static function handle(string $year, Istorage $storageHndlr): void
     {
 
-        $filePath = self::getFilepath();
+        $filePath = $storageHndlr->getFilepath($year);
 
-        $csvData = self::loadArrayFromCSV($filePath);
+        $csvData = $storageHndlr->loadArrayFromCSV($filePath);
 
         $alreadyCalculatedMonths = count($csvData) - 1;  // subtract the header row
 
@@ -36,70 +66,12 @@ class PayDatesCommand
             return;
         }
         for ($month = $alreadyCalculatedMonths + 1; $month <= 12; $month++) {
-            $rec = new MonthRecord($month);
+            $rec = new MonthRecord($year, $month);
             $csvData[] = [$rec->getMonthName(), $rec->getSalaryDate(), $rec->getBonusDate()];
         }
-        self::writeArrayToCsvFile($filePath, $csvData);
+        $storageHndlr->writeArrayToCsvFile($filePath, $csvData);
 
-    }
-
-    /**
-     * @return string
-     */
-    public static function getFilepath(): string
-    {
-        $year = date('Y');
-        $filePath = __DIR__ . "/../output/salaries-{$year}.csv";
-        return $filePath;
-    }
-
-    /**
-     * @param string $filePath
-     * @return array
-     */
-    public static function loadArrayFromCSV(string $filePath): array
-    {
-        if (!file_exists($filePath)) {
-            echo "File does not exist! Creating a new CSV file with headers...\n";
-            // Define the headers
-            $headers = ['Month', 'SalaryPayDate', 'BonusPayDate'];
-
-            // Open the file for writing (create if not exists)
-            self::writeArrayToCsvFile($filePath, $headers);
-        }
-        echo "File exists! Loading the CSV data into an array...\n";
-
-        // Load CSV into an array
-        $csvData = array_map('str_getcsv', file($filePath));
-        // Remove any empty lines
-        $csvData = array_filter($csvData, function ($row) {
-            // Filter out empty rows or rows where all values are empty
-            return !empty(array_filter($row));
-        });
-        return $csvData;
-    }
-
-    /**
-     * @param $filePath
-     * @param array $data
-     * @return void
-     */
-    public static function writeArrayToCsvFile($filePath, array $data)
-    {
-        $file = fopen($filePath, 'w');
-
-        if (is_array($data[0])) {
-            foreach ($data as $record) {
-                // Write each record as a row in the CSV
-                fputcsv($file, $record);
-            }
-        } else {
-            // Write single line to the CSV file
-            fputcsv($file, $data);
-        }
-        // Close the file
-        fclose($file);
     }
 }
 
-PayDatesCommand::handle();
+PayDatesCommand::run();

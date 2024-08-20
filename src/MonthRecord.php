@@ -8,11 +8,9 @@ use Exception;
 class MonthRecord
 {
     const WEEkEND_DAY = ['SAT', 'SUN'];
-    private $currentYear;
 
-    public function __construct(private $month)
+    public function __construct(private string $year, private string $month)
     {
-        $this->currentYear = date('Y');
     }
 
     /**
@@ -23,8 +21,7 @@ class MonthRecord
     {
         try {
             $this->month = str_pad($this->month, 2, "0", STR_PAD_LEFT);
-            $date = "{$this->currentYear}-{$this->month}-01";
-            echo "$date \n";
+            $date = "{$this->year}-{$this->month}-01";
             $dateTime = new DateTime($date);
             return $dateTime->format('M');
         } catch (Exception $exception) {
@@ -32,10 +29,10 @@ class MonthRecord
         }
     }
 
-    public function getSalaryDate()
+    public function getSalaryDate(): string
     {
         $date = new DateTime();
-        $date->setDate($this->currentYear, intval($this->month), 1); // Set the date to the first day of the specified month
+        $date->setDate($this->year, intval($this->month), 1); // Set the date to the first day of the specified month
         $date->modify('+1 month');
         $date->modify('-1 day');
         return $this->firstWeekDay($date);
@@ -56,10 +53,10 @@ class MonthRecord
         return $date->format('Y-m-d');
     }
 
-    public function getBonusDate()
+    public function getBonusDate(): string
     {
         $date = new DateTime();
-        $date->setDate($this->currentYear, intval($this->month), 15); // Set the date to the first day of the specified month
+        $date->setDate($this->year, intval($this->month), 15);
         return $this->firstWeekDay($date);
     }
 }
